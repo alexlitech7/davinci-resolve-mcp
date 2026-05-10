@@ -14,6 +14,7 @@ Usage:
 VERSION = "2.16.0"
 
 import base64
+import functools
 import os
 import sys
 import json
@@ -39,6 +40,7 @@ for p in [current_dir, project_dir]:
 from src.utils.cdl import normalize_cdl_payload
 from src.utils.mcp_stdio import run_fastmcp_stdio
 from src.utils.platform import get_resolve_paths, get_resolve_plugin_paths
+from src.utils.tool_policy import check_tool_call, load_policy
 from src.utils import fuse_templates, dctl_templates, script_templates
 
 paths = get_resolve_paths()
@@ -74,6 +76,56 @@ mcp = FastMCP(
         "If a tool returns a connection error, Resolve Studio may not be installed or external scripting is disabled."
     ),
 )
+
+TOOL_POLICY = load_policy()
+
+
+def _tool_action_from_call(args, kwargs):
+    if "action" in kwargs:
+        return kwargs["action"]
+    if args:
+        return args[0]
+    return None
+
+
+def _tool_params_from_call(args, kwargs):
+    params = kwargs.get("params")
+    if params is None and len(args) > 1:
+        params = args[1]
+    return params if isinstance(params, dict) else {}
+
+
+def _install_policy_guard():
+    """Wrap MCP tools with a central confirmation guard at registration time."""
+
+    original_tool = mcp.tool
+
+    def guarded_tool(*tool_args, **tool_kwargs):
+        decorator = original_tool(*tool_args, **tool_kwargs)
+
+        def decorate(func):
+            @functools.wraps(func)
+            def guarded(*args, **kwargs):
+                action = _tool_action_from_call(args, kwargs)
+                if isinstance(action, str):
+                    params = _tool_params_from_call(args, kwargs)
+                    confirmation = TOOL_POLICY.get("confirmation", {})
+                    manual_preview_actions = set(confirmation.get("manual_preview_actions", []))
+                    if f"{func.__name__}.{action}" in manual_preview_actions:
+                        return func(*args, **kwargs)
+                    decision = check_tool_call(TOOL_POLICY, func.__name__, action, params)
+                    if not decision.allowed:
+                        return decision.response
+                return func(*args, **kwargs)
+
+            return decorator(guarded)
+
+        return decorate
+
+    mcp.tool = guarded_tool
+
+
+_install_policy_guard()
 
 # ─── Python Version Check ────────────────────────────────────────────────────
 
@@ -168,6 +220,9 @@ def get_resolve():
     # Try to connect to an already-running Resolve
     if _try_connect():
         return resolve
+    if not TOOL_POLICY.get("auto_launch_resolve", False):
+        logger.info("Resolve not running and auto-launch is disabled by tool policy.")
+        return None
     # Not running — launch it automatically
     logger.info("Resolve not running, attempting to launch automatically...")
     _launch_resolve()
@@ -6911,6 +6966,16 @@ def timeline_markers(action: str, params: Optional[Dict[str, Any]] = None) -> Di
         marker, marker_err = _marker_add_payload(p, tl=tl, default_to_current=True)
         if marker_err:
             return marker_err
+        decision = check_tool_call(TOOL_POLICY, "timeline_markers", action, p)
+        if not decision.allowed:
+            response = dict(decision.response or {})
+            response["preview"] = {
+                "tool": "timeline_markers",
+                "action": "add",
+                "params": p,
+                "marker": marker,
+            }
+            return response
         return _add_marker(tl, marker)
     elif action == "get_all":
         return {"markers": _ser(tl.GetMarkers())}

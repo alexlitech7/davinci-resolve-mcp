@@ -1,0 +1,23 @@
+[project]
+name = "davinci-resolve-mcp"
+version = "2.16.0+alexlitech7.1"
+description = "DaVinci Resolve MCP server fork with confirmation-gated write operations."
+readme = "README.md"
+requires-python = ">=3.10,<3.13"
+license = { file = "LICENSE" }
+dependencies = [
+    "mcp[cli]>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

@@ -1,6 +1,7 @@
 import unittest
 
 import src.server as compound
+from src.utils.tool_policy import operation_id
 
 
 class TimelineStub:
@@ -51,14 +52,18 @@ class TimelineMarkerParamTest(unittest.TestCase):
         compound._get_tl = self.original_get_tl
 
     def test_add_accepts_frame_id_alias_and_defaults_name_duration(self):
+        params = {
+            "frame_id": "42",
+            "color": "blue",
+            "note": "Needs review",
+            "customData": "marker-1",
+        }
+        params["confirm"] = True
+        params["operation_id"] = operation_id("timeline_markers", "add", params)
+
         out = compound.timeline_markers(
             "add",
-            {
-                "frame_id": "42",
-                "color": "blue",
-                "note": "Needs review",
-                "customData": "marker-1",
-            },
+            params,
         )
 
         self.assertEqual(out, {"success": True, "frame": 42})
@@ -68,7 +73,11 @@ class TimelineMarkerParamTest(unittest.TestCase):
         )
 
     def test_add_defaults_to_current_playhead(self):
-        out = compound.timeline_markers("add", {"color": "green"})
+        params = {"color": "green"}
+        params["confirm"] = True
+        params["operation_id"] = operation_id("timeline_markers", "add", params)
+
+        out = compound.timeline_markers("add", params)
 
         self.assertEqual(out, {"success": True, "frame": 86412})
         self.assertEqual(
@@ -78,10 +87,13 @@ class TimelineMarkerParamTest(unittest.TestCase):
 
     def test_add_accepts_timecode_with_nominal_ntsc_rate(self):
         self.timeline.fps = "23.976"
+        params = {"timecode": "01:00:10:00", "color": "red", "name": "TC"}
+        params["confirm"] = True
+        params["operation_id"] = operation_id("timeline_markers", "add", params)
 
         out = compound.timeline_markers(
             "add",
-            {"timecode": "01:00:10:00", "color": "red", "name": "TC"},
+            params,
         )
 
         self.assertEqual(out, {"success": True, "frame": 86640})
@@ -91,7 +103,11 @@ class TimelineMarkerParamTest(unittest.TestCase):
         )
 
     def test_delete_at_frame_accepts_frame_id_alias(self):
-        out = compound.timeline_markers("delete_at_frame", {"frameId": 123})
+        params = {"frameId": 123}
+        params["confirm"] = True
+        params["operation_id"] = operation_id("timeline_markers", "delete_at_frame", params)
+
+        out = compound.timeline_markers("delete_at_frame", params)
 
         self.assertEqual(out, {"success": True})
         self.assertEqual(self.timeline.deleted_frames, [123])
@@ -100,6 +116,24 @@ class TimelineMarkerParamTest(unittest.TestCase):
         out = compound.timeline_markers("add", {"timecode": "01:00:00"})
 
         self.assertEqual(out, {"error": "timecode must use HH:MM:SS:FF format"})
+
+    def test_add_without_confirmation_returns_resolved_preview(self):
+        out = compound.timeline_markers("add", {"frame_id": "42", "color": "blue"})
+
+        self.assertEqual(out["requires_confirmation"], True)
+        self.assertEqual(out["risk"], "write")
+        self.assertEqual(
+            out["preview"]["marker"],
+            {
+                "frame": 42,
+                "color": "Blue",
+                "name": "Marker",
+                "note": "",
+                "duration": 1,
+                "custom_data": "",
+            },
+        )
+        self.assertEqual(self.timeline.add_calls, [])
 
     def test_add_marker_falls_back_to_five_arg_overload_when_custom_data_empty(self):
         target = FiveArgMarkerStub()

@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "default_risk": "write",
+  "auto_launch_resolve": false,
+  "confirmation": {
+    "require_for_risks": ["write", "delete", "dangerous"],
+    "allowlisted_writes": [],
+    "manual_preview_actions": ["timeline_markers.add"]
+  },
+  "tools": {
+    "resolve_control": {
+      "read_actions": ["get_version", "get_page", "get_keyframe_mode", "get_fairlight_presets"],
+      "write_actions": ["launch", "open_page", "set_keyframe_mode", "set_high_priority"],
+      "dangerous_actions": ["quit"]
+    },
+    "project_manager": {
+      "read_actions": ["list", "current", "get_current", "get_name", "project_capabilities", "probe_project_lifecycle", "probe_project_settings", "probe_project_settings", "project_settings_snapshot", "database_capabilities", "preset_lifecycle_probe", "project_boundary_report"]
+    },
+    "project_settings": {
+      "read_actions": ["get", "list", "get_all", "get_metadata"]
+    },
+    "media_pool": {
+      "read_actions": ["list_folders", "list_clips", "get_root_folder", "get_current_folder", "get_selected_clips", "probe_media_pool", "probe_ingest_item", "ingest_capabilities", "probe_clip_properties", "media_pool_boundary_report"]
+    },
+    "folder": {
+      "read_actions": ["get_clip_list", "get_name", "get_subfolders", "get_is_stale", "get_unique_id"]
+    },
+    "media_pool_item": {
+      "read_actions": ["get_name", "get_metadata", "get_third_party_metadata", "get_media_id", "get_markers", "get_marker_by_custom_data", "get_marker_custom_data", "get_flag_list", "get_clip_color", "get_clip_property", "get_unique_id", "get_audio_mapping", "get_mark_in_out"]
+    },
+    "timeline": {
+      "read_actions": ["list", "get_current", "get_name", "get_start_frame", "get_end_frame", "get_start_timecode", "get_track_count", "get_track_sub_type", "get_track_enabled", "get_track_locked", "get_track_name", "get_items", "get_setting", "get_unique_id", "get_node_graph", "get_media_pool_item", "get_mark_in_out", "get_items_in_track", "get_voice_isolation_state", "extract_source_frame_ranges", "edit_kernel_capabilities", "probe_edit_kernel_item", "conform_capabilities", "probe_timeline_structure", "detect_gaps_overlaps", "source_range_report", "compare_timelines", "detect_missing_media", "build_relink_plan", "conform_boundary_report", "audio_capabilities", "probe_audio_item", "probe_audio_track", "voice_isolation_capabilities", "audio_mapping_report", "transcription_capabilities", "subtitle_generation_probe", "fairlight_boundary_report"]
+    },
+    "timeline_markers": {
+      "read_actions": ["get_all", "get_by_custom_data", "get_custom_data", "get_current_timecode", "get_current_video_item", "get_thumbnail", "annotation_capabilities", "probe_annotations", "normalize_marker_payload", "export_review_report", "annotation_boundary_report"],
+      "write_actions": ["add", "update_custom_data", "set_current_timecode", "copy_annotations", "move_annotations", "sync_marker_custom_data"],
+      "delete_actions": ["delete_by_color", "delete_at_frame", "delete_by_custom_data", "clear_annotations_by_scope"]
+    }
+  }
+}
